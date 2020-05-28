@@ -1,8 +1,7 @@
 %%% -------------------------------------------------------------------
-%%% Author  : uabjle
-%%% Description : dbase using dets 
+%%% @author : joqerlang
+%%% @doc : ets dbase for master service to manage app info , catalog  
 %%%
-%%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
 -module(lib_ets).
  
@@ -129,8 +128,8 @@ delete_catalog()->
     add(catalog,[]).
 
 get_catalog(WantedServiceId)->
-    [{{service,ServiceId},{Type,Source}}||
-	{{service,ServiceId},{Type,Source}}<-all(catalog),
+    [{ServiceId,Type,Source}||
+	{ServiceId,Type,Source}<-all(catalog),
 	WantedServiceId=:=ServiceId].
 
 

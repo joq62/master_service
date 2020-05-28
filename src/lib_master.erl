@@ -1,8 +1,8 @@
 %%% -------------------------------------------------------------------
-%%% Author  : Joq Erlang
-%%% Description : test application calc
+%%% @author : Joq Erlang
+%%% @doc support to master service 
+%%% 
 %%%  
-%%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
 -module(lib_master).  
 
@@ -22,11 +22,6 @@
 %% --------------------------------------------------------------------
 
 
--compile(export_all).
-
-%-export([]).
-
-
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -34,33 +29,27 @@
 -define(APP_INFO_FILE,"app_info.dets").
 -define(APP_DETS,?APP_INFO_FILE,[{type,set}]).
 
-
-
 %% --------------------------------------------------------------------
 
 %% External exports
 
-%-export([create/2,delete/2]).
+-export([start_missing/0,
+	 update_configs/0,
+	 check_available_nodes/1,
+	 check_missing_services/1
+	]).
 
--compile(export_all).
+%%-compile(export_all).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
-%% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
-%% --------------------------------------------------------------------
-
-%% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
-%% --------------------------------------------------------------------
+%% @doc update_configs updates the master ets table with the lates updates of 
+%%      app spec, catalog and node files, no return
+-spec(update_configs()->any()).
 update_configs()->
-    io:format("~p~n",[{?MODULE,?LINE,update_configs}]),
+    %io:format("~p~n",[{?MODULE,?LINE,update_configs}]),
     {ok,AppInfo}=file:consult(?APP_SPEC),
     ok=lib_ets:add_apps(AppInfo),
 
@@ -75,11 +64,10 @@ update_configs()->
     ok.			 
 
 
-%% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
-%% --------------------------------------------------------------------
+%% @doc : start_missing based on latest information in ets table checks which 
+%%        services that needs to be started and tries to start them
+%%        no reply
+-spec(start_missing()->any()).
 start_missing()->
     AppInfo=lib_ets:all(apps),
     NodesInfo=lib_ets:all(nodes),
@@ -91,7 +79,7 @@ start_missing()->
 	    io:format("~p~n",[{?MODULE,?LINE,missing ,Missing}]),
 	    lib_service:log_event(?MODULE,?LINE,info,["Missing services",Missing]),
 	    load_start(Missing,[])
-    end. 
+    end.  
 
 
 
@@ -145,12 +133,10 @@ remove([{ServiceId,IpAddr,Port}|T],Acc)->
       end,
     remove(T,[R|Acc]).
     
-    
-%% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
-%% --------------------------------------------------------------------
+
+%% @doc: check_available_nodes finds which nodes that are available , returns a list of 
+%%       active nodes [{NodeId,Node,IpAddr,Port,Mode}]
+-spec(check_available_nodes([{NodeId::string(),Node::node(),IpAddr::string(),Port::integer(),Mode::atom()}])-> [{NodeId::string(),Node::node(),IpAddr::string(),Port::integer(),Mode::atom()}]).
 check_available_nodes(NodesInfo)->
    % {ok,NodesInfo}=file:consult(?NODE_CONFIG),    
     S=self(),Ref=erlang:make_ref(),
@@ -203,11 +189,10 @@ check_obsolite_services(DesiredServices)->
  
    Obsolite.
 
-%% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
-%% --------------------------------------------------------------------
+%% @doc: check_missing_services based on list of wanted state of running services this
+%%       function detecs which services that are not loaded and started,
+%%       returns a list of [{DesiredServiceId,DesiredIpAddr,DesiredPort}]
+-spec(check_missing_services([DesiredServices::string()])->[{ServiceId::string(),IpAddr::string(),Port::integer()}]).
 check_missing_services(DesiredServices)->
     PingR=[{tcp_client:call({IpAddr,Port},{list_to_atom(ServiceId),ping,[]},?CLIENT_TIMEOUT),IpAddr,Port}||{ServiceId,IpAddr,Port}<-DesiredServices],
     ActiveServices=[{atom_to_list(Service),IpAddr,Port}||{{pong,_,Service},IpAddr,Port}<-PingR],
