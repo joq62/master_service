@@ -58,22 +58,19 @@ update_configs()->
     {ok,NodesInfo}=file:consult(?NODE_CONFIG),
     AvailableNodesInfo=check_available_nodes(NodesInfo),
     ok=lib_ets:add_nodes(AvailableNodesInfo),
- %   DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
-  %  ok=lib_ets:add_desired(DesiredServices),
+    DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
+    ok=lib_ets:add_desired(DesiredServices),
     ok.			 
 
 
 get_available_services()->
     case lib_master:get_nodes_status() of
     	{{active,[]},{missing,_}}->
-	    [glurk];
+	    [];
 	 {{active,AvailableNodes},{missing,_}}->
 	    WantedAppsInfo=lib_ets:all(apps),
-	    L1=[{ServiceId,NodeId}||{ServiceId,NodeId}<-WantedAppsInfo,
-				 lists:keymember(NodeId,1,AvailableNodes)],
-	  %  L2=[{ServiceId,NodeId,tcp_client:call({IpAddr,Port},{list_to_atom(ServiceId),ping,[]},?CLIENT_TIMEOUT)}||{ServiceId,[{NodeId,IpAddr,Port,Mode}]}<-L1],
-	   % [{ServiceId,NodeId}||{ServiceId,NodeId,{pong,_,_}}<-L2]
-	    L1
+	    [{ServiceId,NodeId}||{ServiceId,NodeId}<-WantedAppsInfo,
+				   lists:keymember(NodeId,1,AvailableNodes)]
     end.
 
 %% @doc : get_missing based on latest information in ets table checks which 
@@ -82,9 +79,9 @@ get_available_services()->
 -spec(get_missing_services()->[tuple()]|[]).
 get_missing_services()->
     WantedAppsInfo=lib_ets:all(apps),
-    NodesIp=[{ServiceId,lib_ets:get_nodes(NodeId)}||{ServiceId,NodeId}<-WantedAppsInfo],    
-   L1=[{ServiceId,NodeId,tcp_client:call({IpAddr,Port},{list_to_atom(ServiceId),ping,[]},?CLIENT_TIMEOUT)}||{ServiceId,[{NodeId,IpAddr,Port,Mode}]}<-NodesIp],
-    MissingServices=[{ServiceId,NodeId}||{ServiceId,NodeId,{error,_}}<-L1],
+    NodesIp=[{ServiceId,lib_ets:get_nodes(NodeId)}||{ServiceId,NodeId}<-WantedAppsInfo],
+    MissingServices=[{ServiceId,NodeId}||{ServiceId,{NodeId,IpAddr,Port,Mode}}<-NodesIp,
+				 false=:={pong,_,_}=tcp_client:call({IpAddr,Port},{boot_service,ping,[]},?CLIENT_TIMEOUT)],
     MissingServices.		      
 
 
@@ -95,8 +92,8 @@ get_missing_services()->
 -spec(get_nodes_status()->{[tuple()],[tuple()]} | {[],[]}).
 get_nodes_status()->
     {ok,NodesInfo}=file:consult(?NODE_CONFIG),
-    PingR=[{tcp_client:call({IpAddr,Port},{lib_service,ping,[]},?CLIENT_TIMEOUT),NodeId,IpAddr,Port,Mode}||{NodeId,IpAddr,Port,Mode}<-NodesInfo],
-    ActiveNodes=[{IpAddr,Port,Mode}||{{pong,_Node,lib_service},IpAddr,Port,Mode}<-PingR],
+    PingR=[{tcp_client:call({IpAddr,Port},{boot_service,ping,[]},?CLIENT_TIMEOUT),NodeId,IpAddr,Port,Mode}||{NodeId,IpAddr,Port,Mode}<-NodesInfo],
+    ActiveNodes=[{IpAddr,Port,Mode}||{{pong,_Node,boot_service},IpAddr,Port,Mode}<-PingR],
     MissingNodes=[{DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode}||
 		{DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode}<-NodesInfo,
 		false=:=lists:member({DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode},ActiveNodes)],
@@ -348,6 +345,40 @@ service_node_info(Key,ServiceNodeInfo)->
 %% Description:
 %% Returns: non
 %% --------------------------------------------------------------------
+
+create_service_list2(AppsInfo,NodesInfo)->
+    create_service_list2(AppsInfo,NodesInfo,[]).
+create_service_list2([],_,ServiceList)->
+    ServiceList;
+
+create_service_list2([{ServiceId,Num,[]}|T],NodesInfo,Acc)->
+    
+    %% GLURK smarter alogrithm 
+    AvailableNodes=lib_ets:all(nodes),
+    L=[{NodeId,Node,IpAddr,Port,Mode}||{NodeId,Node,IpAddr,Port,Mode}<-AvailableNodes,
+				       NodeId=/=?MASTER_NODEID],
+    NewAcc= case L of
+		[]->
+		    Acc;
+		L->
+		    %% Extract current desired services
+		    %% check if service already deployed on an existing node 
+		    %% check if can deploy total amount of services (different nodes)
+		    
+		    U1=[{ServiceId,IpAddr,Port}||{S1,IpAddr,Port}<-lib_ets:all(desired_services),
+							  ServiceId=:=S1],
+		    U2=keep_available_nodes(U1,L,[]),
+		    NumToUpdate=Num-length(U2),
+		    UpdatedList=update(NumToUpdate,L,ServiceId,U2),
+		    [UpdatedList|Acc]
+	    end,
+    create_service_list2(T,NodesInfo,NewAcc);
+
+
+create_service_list([{ServiceId,_Num,Nodes}|T],NodesInfo,Acc) ->
+    L=[extract_ipaddr(ServiceId,NodeId,NodesInfo)||NodeId<-Nodes],
+    NewAcc=lists:append(Acc,L),
+    create_service_list(T,NodesInfo,NewAcc).
 
 extract_ipaddr(ServiceId,NodeId,NodesInfo)->
     case lists:keyfind(NodeId,1,NodesInfo) of

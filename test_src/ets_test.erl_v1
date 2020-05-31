@@ -43,12 +43,12 @@ start()->
     ok=lib_ets:add_apps(AppInfo),
     {ok,CatalogInfo}=file:consult(?CATALOG_INFO),
     ok=lib_ets:add_catalog(CatalogInfo),
-   % DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
-   % ok=lib_ets:add_desired(DesiredServices),
+    DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
+    ok=lib_ets:add_desired(DesiredServices),
     check_apps(),   
     check_nodes(),
     ?CHECK_CATALOG,
-  %  check_desired(),
+    check_desired(),
     lib_ets:delete_ets(),
     ok.
 
@@ -121,15 +121,14 @@ check_nodes()->
 %% Returns: non
 %% -------------------------------------------------------------------
 check_apps()->
-    ?assertMatch([{"master_service","master_sthlm_1"},
-		  {"dns_service","master_sthlm_1"},
-		  {"log_service","master_sthlm_1"},
-		  {"adder_service","worker_varmdoe_1"},
-		  {"adder_service","worker_sthlm_1"},
-		  {"divi_service","worker_sthlm_2"}],
-		 lib_ets:all(apps)),
-    ?assertMatch([{"adder_service","worker_varmdoe_1"},
-		  {"adder_service","worker_sthlm_1"}],
+    ?assertMatch([{"master_service",1,["master_sthlm_1"]},
+		  {"dns_service",1,["master_sthlm_1"]},
+		  {"log_service",1,["master_sthlm_1"]},
+		  {"adder_service",2,
+		   ["worker_varmdoe_1","worker_sthlm_1"]},
+		  {"divi_service",1,["worker_sthlm_2"]}],lib_ets:all(apps)),
+    ?assertMatch([{"adder_service",2,
+		   ["worker_varmdoe_1","worker_sthlm_1"]}],
 		 lib_ets:get_apps("adder_service")),
 
     ok.
@@ -176,7 +175,7 @@ find_missing()->
 %% Returns: non
 %% -------------------------------------------------------------------
 check_status()->
-        AppsInfo=master_service:apps(),
+    AppsInfo=master_service:apps(),
     NodesInfo=master_service:nodes(),
     ?assertMatch([{"master_service",1,["pod_master"]},
 		  {"dns_service",1,["pod_master"]},

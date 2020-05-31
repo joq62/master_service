@@ -12,15 +12,6 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("common_macros.hrl").
 
-
-
--ifdef(dir).
--define(CHECK_CATALOG,check_catalog_dir()).
--else.
--define(CHECK_CATALOG,check_catalog_git()).
--endif.
-
-
 %% --------------------------------------------------------------------
 -compile(export_all).
 
@@ -43,12 +34,12 @@ start()->
     ok=lib_ets:add_apps(AppInfo),
     {ok,CatalogInfo}=file:consult(?CATALOG_INFO),
     ok=lib_ets:add_catalog(CatalogInfo),
-   % DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
-   % ok=lib_ets:add_desired(DesiredServices),
+    DesiredServices=lib_master:create_service_list(AppInfo,NodesInfo),
+    ok=lib_ets:add_desired(DesiredServices),
     check_apps(),   
     check_nodes(),
-    ?CHECK_CATALOG,
-  %  check_desired(),
+    check_catalog(),
+    check_desired(),
     lib_ets:delete_ets(),
     ok.
 
@@ -75,20 +66,7 @@ check_desired()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
-check_catalog_dir()->
-    ?assertMatch([{"adder_service",git,"https://github.com/joq62/"},
-		  {"dns_service",dir,"/home/pi/erlang/infrastructure/"},
-		  {"log_service",dir,"/home/pi/erlang/infrastructure/"},
-		  {"lib_service",dir,"/home/pi/erlang/infrastructure/"}],lib_ets:all(catalog)),
-    ?assertMatch([{"adder_service",git,"https://github.com/joq62/"}],
-		 lib_ets:get_catalog("adder_service")),
-   ?assertMatch([],
-		lib_ets:get_catalog("glurk")),
-
-    ok.
-
-
-check_catalog_git()->
+check_catalog()->
     ?assertMatch([{"adder_service",git,"https://github.com/joq62/"},
 		  {"divi_service",git,"https://github.com/joq62/"},
 		  {"dns_service",git,"https://github.com/joq62/"},
@@ -107,11 +85,11 @@ check_catalog_git()->
 %% Returns: non
 %% -------------------------------------------------------------------
 check_nodes()->
-    ?assertMatch([{"master_sthlm_1","localhost",40000,parallell},
-		  {"worker_varmdoe_1","localhost",50100,parallell},
-                      {"worker_sthlm_1","localhost",40100,parallell},
-                      {"worker_sthlm_2","localhost",40200,parallell}],lib_ets:all(nodes)),
-    ?assertMatch([{"master_sthlm_1","localhost",40000,parallell}],
+    ?assertMatch([{"master_sthlm_1",pod_master@asus,"localhost",40000,parallell},
+		  {"worker_varmdoe_1",pod_landet_1@asus,"localhost",50100,parallell},
+                      {"worker_sthlm_1",pod_lgh_1@asus,"localhost",40100,parallell},
+                      {"worker_sthlm_2",pod_lgh_2@asus,"localhost",40200,parallell}],lib_ets:all(nodes)),
+    ?assertMatch([{"master_sthlm_1",pod_master@asus,"localhost",40000,parallell}],
 		 lib_ets:get_nodes("master_sthlm_1")),
 
     ok.
@@ -121,15 +99,14 @@ check_nodes()->
 %% Returns: non
 %% -------------------------------------------------------------------
 check_apps()->
-    ?assertMatch([{"master_service","master_sthlm_1"},
-		  {"dns_service","master_sthlm_1"},
-		  {"log_service","master_sthlm_1"},
-		  {"adder_service","worker_varmdoe_1"},
-		  {"adder_service","worker_sthlm_1"},
-		  {"divi_service","worker_sthlm_2"}],
-		 lib_ets:all(apps)),
-    ?assertMatch([{"adder_service","worker_varmdoe_1"},
-		  {"adder_service","worker_sthlm_1"}],
+    ?assertMatch([{"master_service",1,["master_sthlm_1"]},
+		  {"dns_service",1,["master_sthlm_1"]},
+		  {"log_service",1,["master_sthlm_1"]},
+		  {"adder_service",2,
+		   ["worker_varmdoe_1","worker_sthlm_1"]},
+		  {"divi_service",1,["worker_sthlm_2"]}],lib_ets:all(apps)),
+    ?assertMatch([{"adder_service",2,
+		   ["worker_varmdoe_1","worker_sthlm_1"]}],
 		 lib_ets:get_apps("adder_service")),
 
     ok.

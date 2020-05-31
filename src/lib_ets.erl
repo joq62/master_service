@@ -31,7 +31,9 @@
 %	 get_expired_time/0
 %	]).
 
+
 -compile(export_all).
+%-export([init/0,delete_ets/0,clear/0,all/0]).
 
 
 
@@ -44,18 +46,26 @@
 %% Description:
 %% Returns: non
 %% --------------------------------------------------------------------
+%% @doc: init creates a ets table (public, set with the name master_ets)
+-spec(init()->ok).
 init()->
     ?MASTER_ETS=ets:new(?MASTER_ETS,[public,set,named_table]),
     ok.
+
+%% @doc: delete_ets deletes the ets tabel with the name master_ets
+-spec(delete_ets()->ok).
 delete_ets()->
     ets:delete(?MASTER_ETS).
 
+%% @doc: clear deletes current table and creates a new with
+-spec(clear()->ok).
 clear()->
     true=ets:delete(?MASTER_ETS),
     ?MASTER_ETS=ets:new(?MASTER_ETS,[public,set,named_table]),
     ok.
 
-
+%% @doc: all returns all tuples in the the table master_ets
+-spec(all()->[tuple()]|[]).
 all()->
     ets:tab2list(?MASTER_ETS).
 
@@ -65,6 +75,8 @@ all()->
 %% Description:
 %% Returns: non
 %% --------------------------------------------------------------------
+
+
 add(Key,Value)->
     ets:insert(?MASTER_ETS,{Key,Value}),
     ok.
@@ -96,8 +108,8 @@ delete_apps()->
     add(apps,[]).
 
 get_apps(WantedServiceId)->
-    [{ServiceId,NumInstances,ListRequiredNodes}||
-	{ServiceId,NumInstances,ListRequiredNodes}<-all(apps),
+    [{ServiceId,RequiredNode}||
+	{ServiceId,RequiredNode}<-all(apps),
 	WantedServiceId=:=ServiceId].
 
 
@@ -144,9 +156,10 @@ delete_nodes()->
     add(nodes,[]).
 
 get_nodes(WantedNodeId)->
-    L=[{NodeId,Node,IpAddr,Port,Mode}||
-	{NodeId,Node,IpAddr,Port,Mode}<-all(nodes),
-	WantedNodeId=:=NodeId].
+    L=[{NodeId,IpAddr,Port,Mode}||
+	{NodeId,IpAddr,Port,Mode}<-all(nodes),
+	WantedNodeId=:=NodeId],
+    L.
 
 %% --------------------------------------------------------------------
 %% Function: 

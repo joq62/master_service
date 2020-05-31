@@ -34,18 +34,14 @@ cases_test()->
     ?debugMsg("Test system setup"),
     setup(),
     %% Start application tests
-    
-    ?debugMsg("start lib_service "),
-    ?assertEqual(ok,application:start(lib_service)),
-
     ?debugMsg("ets test"),    
     ?assertEqual(ok,ets_test:start()),
-  
-    ?debugMsg("lib service  test"),    
-    ?assertEqual(ok,lib_service_test:start()),
-  
     ?debugMsg("start master_service and lib_service"),    
     ?assertEqual(ok,start_session()),
+
+    ?debugMsg("start master_service and lib_service"),    
+    ?assertEqual(ok,start_session()),
+
 
     ?debugMsg("Start stop_test_system:start"),
     %% End application tests
@@ -63,7 +59,10 @@ setup()->
 
 start_session()->
     ?assertEqual(ok,application:start(master_service)),
-    ?assertMatch({pong,_,master_service},master_service:ping()),   
+    Node=node(),
+    ?assertEqual({pong,Node,master_service},master_service:ping()),   
+    ?assertEqual(ok,application:start(lib_service)),   
+    ?assertEqual({pong,Node,lib_service},lib_service:ping()),
     ok.
 
 
