@@ -83,7 +83,7 @@ get_available_services()->
 get_missing_services()->
     WantedAppsInfo=lib_ets:all(apps),
     NodesIp=[{ServiceId,lib_ets:get_nodes(NodeId)}||{ServiceId,NodeId}<-WantedAppsInfo],    
-   L1=[{ServiceId,NodeId,tcp_client:call({IpAddr,Port},{list_to_atom(ServiceId),ping,[]},?CLIENT_TIMEOUT)}||{ServiceId,[{NodeId,IpAddr,Port,Mode}]}<-NodesIp],
+    L1=[{ServiceId,NodeId,tcp_client:call({IpAddr,Port},{list_to_atom(ServiceId),ping,[]},?CLIENT_TIMEOUT)}||{ServiceId,[{NodeId,IpAddr,Port,Mode}]}<-NodesIp],
     MissingServices=[{ServiceId,NodeId}||{ServiceId,NodeId,{error,_}}<-L1],
     MissingServices.		      
 
@@ -96,10 +96,10 @@ get_missing_services()->
 get_nodes_status()->
     {ok,NodesInfo}=file:consult(?NODE_CONFIG),
     PingR=[{tcp_client:call({IpAddr,Port},{lib_service,ping,[]},?CLIENT_TIMEOUT),NodeId,IpAddr,Port,Mode}||{NodeId,IpAddr,Port,Mode}<-NodesInfo],
-    ActiveNodes=[{IpAddr,Port,Mode}||{{pong,_Node,lib_service},IpAddr,Port,Mode}<-PingR],
+    ActiveNodes=[{IpAddr,Port,Mode}||{{pong,_Vm,lib_service},_NodeId,IpAddr,Port,Mode}<-PingR],
     MissingNodes=[{DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode}||
 		{DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode}<-NodesInfo,
-		false=:=lists:member({DesiredNodeId,DesiredIpAddr,DesiredPort,DesiredMode},ActiveNodes)],
+		false=:=lists:member({DesiredIpAddr,DesiredPort,DesiredMode},ActiveNodes)],
     
     {{active,ActiveNodes},{missing,MissingNodes}}.
 

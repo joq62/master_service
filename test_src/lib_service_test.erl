@@ -109,11 +109,11 @@ start_services()->
 							{adder_service,ping,[]},?CLIENT_TIMEOUT)),
     ?assertMatch({pong,_,lib_service},tcp_client:call({"localhost",40100},
 							{lib_service,ping,[]},?CLIENT_TIMEOUT)),
-    ?assertMatch({{active,[pungkula]},
+    
+    ?assertMatch({{active,[{"localhost",40100,parallell}]},
 		  {missing,
 		   [{"master_sthlm_1","localhost",40000,parallell},
 		    {"worker_varmdoe_1","localhost",50100,parallell},
-		    {"worker_sthlm_1","localhost",40100,parallell},
 		    {"worker_sthlm_2","localhost",40200,parallell}]}},
 		 lib_master:get_nodes_status()),
     ok.
