@@ -41,8 +41,8 @@ cases_test()->
     ?debugMsg("ets test"),    
     ?assertEqual(ok,ets_test:start()),
   
-    ?debugMsg("lib service  test"),    
-    ?assertEqual(ok,lib_service_test:start()),
+    ?debugMsg("lib master  test"),    
+    ?assertEqual(ok,lib_master_test:start()),
   
     ?debugMsg("start master_service and lib_service"),    
     ?assertEqual(ok,start_session()),

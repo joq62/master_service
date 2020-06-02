@@ -1,0 +1,4 @@
+{"adder_service",git,"https://github.com/joq62/"}.
+{"dns_service",dir,"/home/pi/erlang/infrastructure/"}.
+{"log_service",dir,"/home/pi/erlang/infrastructure/"}.
+{"lib_service",dir,"/home/pi/erlang/infrastructure/"}.

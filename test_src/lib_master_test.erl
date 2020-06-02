@@ -4,7 +4,7 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(lib_service_test).  
+-module(lib_master_test).   
    
 %% --------------------------------------------------------------------
 %% Include files
@@ -89,16 +89,22 @@ get_nodes_status()->
     ok.
 
 get_available_services()->
-    ?assertMatch([glurk],lib_master:get_available_services()),
+    ?assertMatch([],lib_master:get_available_services()),
     ok.
 
 get_missing_services()->
-    ?assertMatch([{"master_service","master_sthlm_1"},
-                      {"dns_service","master_sthlm_1"},
-                      {"log_service","master_sthlm_1"},
-                      {"adder_service","worker_varmdoe_1"},
-                      {"adder_service","worker_sthlm_1"},
-                      {"divi_service","worker_sthlm_2"}],lib_master:get_missing_services()),
+    ?assertMatch([{"master_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"dns_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"log_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"adder_service","worker_varmdoe_1","localhost",50100,
+		   parallell},
+		  {"adder_service","worker_sthlm_1","localhost",40100,
+		   parallell},
+		  {"divi_service","worker_sthlm_2","localhost",40200,
+		  parallell}],lib_master:get_missing_services()),
     ok.
     
 start_services()->
@@ -110,7 +116,7 @@ start_services()->
     ?assertMatch({pong,_,lib_service},tcp_client:call({"localhost",40100},
 							{lib_service,ping,[]},?CLIENT_TIMEOUT)),
     
-    ?assertMatch({{active,[{"localhost",40100,parallell}]},
+    ?assertMatch({{active,[{"worker_sthlm_1","localhost",40100,parallell}]},
 		  {missing,
 		   [{"master_sthlm_1","localhost",40000,parallell},
 		    {"worker_varmdoe_1","localhost",50100,parallell},
@@ -119,16 +125,23 @@ start_services()->
     ok.
 			
 get_available_services2()->
-    ?assertMatch([],lib_master:get_available_services()),
+    ?assertMatch([{"adder_service","worker_sthlm_1","localhost",40100,
+                       parallell}],lib_master:get_available_services()),
     ok.
 
 get_missing_services2()->
-    ?assertMatch([{"master_service","master_sthlm_1"},
-		  {"dns_service","master_sthlm_1"},
-		  {"log_service","master_sthlm_1"},
-		  {"adder_service","worker_varmdoe_1"},
-		  {"divi_service","worker_sthlm_2"}],lib_master:get_missing_services()),
+    ?assertMatch([{"master_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"dns_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"log_service","master_sthlm_1","localhost",40000,
+		   parallell},
+		  {"adder_service","worker_varmdoe_1","localhost",50100,
+		   parallell},
+		  {"divi_service","worker_sthlm_2","localhost",40200,
+		   parallell}],lib_master:get_missing_services()),
     ok.
+get_obsolite_services()->
     
 %% --------------------------------------------------------------------
 %% Function:start/0 
